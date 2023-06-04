@@ -1,0 +1,6 @@
+{
+  "code_connection_arn": "arn:aws:codestar-connections:us-east-1:968366361019:connection/ba5c5aa4-7567-4051-9c1e-b2d575a1ec74",
+  "root_account_arn": "968366361019", 
+  "primary_region": "us-east-1",
+  "typesense_image": "typesense/typesense:0.24.1"
+}
