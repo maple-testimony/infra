@@ -40,7 +40,7 @@ class SharedStack(Stack):
             instance_type=ec2.InstanceType("t4g.large"),
             desired_capacity=1,
             key_name=self.ssh_key_pair.key_name,
-            machine_image=ecs.EcsOptimizedImage.amazonLinux2(ecs.AmiHardwareType.ARM),
+            machine_image=ecs.EcsOptimizedImage.amazon_linux2(ecs.AmiHardwareType.ARM),
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
         )
         self.cluster.connections.allow_from_any_ipv4(ec2.Port.tcp(22), "Allow SSH")
