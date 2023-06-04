@@ -17,7 +17,11 @@ class SharedStack(Stack):
 
         # A virtual private network that allows everything in Maple's cloud to
         # talk to each other.
-        self.vpc = ec2.Vpc(self, "VPC", vpc_name="maple-net")
+        self.vpc: ec2.Vpc = ec2.Vpc(
+            self,
+            "VPC",
+            vpc_name="maple-net",
+        )
 
         self.ssh_key_pair = ec2.CfnKeyPair(
             self, "SshKeyPair", key_name="maple-cluster-ssh"

@@ -21,23 +21,30 @@ class SearchTask(Construct):
         id: str,
         *,
         vpc: ec2.Vpc,
+        cluster: ecs.Cluster,
     ) -> None:
         super().__init__(scope, id)
 
         # Create a new EFS file system
-        efs_file_system = efs.FileSystem(
+        efs_file_system: efs.FileSystem = efs.FileSystem(
             self,
             "EfsFileSystem",
             vpc=vpc,
             performance_mode=efs.PerformanceMode.GENERAL_PURPOSE,
         )
+        efs_file_system.connections.allow_default_port_from(cluster)
 
         # Create a volume configuration for the EFS file system
-        efs_volume_configuration = ecs.Volume(
+        volume = ecs.Volume(
             name="efsVolume",
-            efs_volume_configuration=ecs.EfsVolumeConfiguration(
-                file_system_id=efs_file_system.file_system_id,
-            ),
+            docker_volume_configuration=ecs.DockerVolumeConfiguration(
+                scope=ecs.Scope.SHARED,
+                driver="local",
+                autoprovision=True,
+            )
+            # efs_volume_configuration=ecs.EfsVolumeConfiguration(
+            #     file_system_id=efs_file_system.file_system_id,
+            # ),
         )
 
         # Set up an admin api key
@@ -53,7 +60,7 @@ class SearchTask(Construct):
         self.definition: ecs.Ec2TaskDefinition = ecs.Ec2TaskDefinition(
             self,
             "TaskDef",
-            volumes=[efs_volume_configuration],
+            volumes=[volume],
         )
 
         # Add a container with environment variables and a mount point for the
@@ -63,6 +70,11 @@ class SearchTask(Construct):
             image=ecs.ContainerImage.from_registry(
                 self.node.get_context("typesense_image")
             ),
+            # entry_point=["bash"],
+            # command=[
+            #     "-c",
+            #     "echo asdf && ls -la /app/data && touch /app/data/test.txt && ls -la /app/data",
+            # ],
             memory_limit_mib=1024,
             logging=ecs.LogDriver.aws_logs(stream_prefix="search"),
             port_mappings=[ecs.PortMapping(container_port=8108)],
@@ -71,15 +83,13 @@ class SearchTask(Construct):
                 "TYPESENSE_ENABLE_CORS": "true",
             },
             secrets={
-                "TYPESENSE_API_KEY": ecs.Secret.from_secrets_manager(
-                    api_key_secret, field="api-key"
-                ),
+                "TYPESENSE_API_KEY": ecs.Secret.from_secrets_manager(api_key_secret),
             },
         )
         container.add_mount_points(
             ecs.MountPoint(
                 container_path="/app/data",
-                source_volume=efs_volume_configuration.name,
+                source_volume=volume.name,
                 read_only=False,
             )
         )
@@ -100,7 +110,12 @@ class SearchStack(Stack):
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        search_task: SearchTask = SearchTask(self, "SearchTask", vpc=vpc)
+        search_task: SearchTask = SearchTask(
+            self,
+            "SearchTask",
+            vpc=vpc,
+            cluster=cluster,
+        )
 
         # Create the service
         ecs_service: ecs.Ec2Service = ecs.Ec2Service(
