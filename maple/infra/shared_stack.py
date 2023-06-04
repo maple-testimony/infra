@@ -73,7 +73,9 @@ class SharedStack(Stack):
             credentials=self.db_admin,
         )
 
-        # self.db_dev_role = iam.Role(self, "PostgresDevRole", assumed_by=iam.AccountRootPrincipal())
-        # self.db.grant_connect(self.db_dev_role)
+        self.db_dev_role = iam.Role(
+            self, "PostgresDevRole", assumed_by=iam.AccountRootPrincipal()
+        )
+        self.db.grant_connect(self.db_dev_role)
 
         self.db.connections.allow_default_port_from_any_ipv4("Postgres Endpoint")

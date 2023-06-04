@@ -22,7 +22,7 @@ class CiCdStack(Stack):
                     "maple-testimony/infra",
                     "main",
                     connection_arn=self.node.get_context("code_connection_arn"),
-                    trigger_on_push=False,
+                    trigger_on_push=True,
                 ),
                 commands=[
                     "pip install poetry",
