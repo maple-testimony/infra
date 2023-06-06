@@ -138,21 +138,28 @@ class SearchStack(Stack):
             conditions=[
                 elbv2.ListenerCondition.path_patterns(
                     [
-                        "/search",
-                        "/search/*",
+                        "/",
+                        "/*",
                     ]
                 )
             ],
+            health_check=elbv2.HealthCheck(healthy_http_codes="200", path="/health"),
             port=80,
             targets=[ecs_service],
             priority=1,
         )
 
         api.http_api.add_routes(
+            # API Gateway automatically strips off the /search prefix
             path="/search/{route+}",
             methods=[apigw.HttpMethod.ANY],
             integration=apigw_integrations.HttpAlbIntegration(
-                "SearchIntegration", listener, vpc_link=api.vpc_link
+                "SearchIntegration",
+                listener,
+                vpc_link=api.vpc_link,
+                parameter_mapping=apigw.ParameterMapping().overwrite_path(
+                    apigw.MappingValue.custom("/${request.path.route}")
+                ),
             ),
         )
 
