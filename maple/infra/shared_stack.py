@@ -4,9 +4,10 @@ from aws_cdk import aws_ecs as ecs
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_logs as logs
 from aws_cdk import aws_rds as rds
+from aws_cdk import aws_servicediscovery as sd
 from constructs import Construct
 
-from .api_construct import Api
+from .api_gateway import ApiGateway
 
 
 class SharedStack(Stack):
@@ -20,25 +21,30 @@ class SharedStack(Stack):
         self.vpc: ec2.Vpc = ec2.Vpc(
             self,
             "VPC",
-            vpc_name="maple-net",
+            vpc_name="maple-shared",
         )
 
         self.ssh_key_pair = ec2.CfnKeyPair(
-            self, "SshKeyPair", key_name="maple-cluster-ssh"
+            self, "SshKeyPair", key_name="maple-cluster-ssh-key"
         )
 
         # An AWS RDS Postgres instance. This instance contains all maple-related
         # production databases.
-        self._make_rds_instance()
+        self.create_rds_instance()
 
         # Create a "cluster" to run our workloads (the scraper and Typesense)
-        self._make_ecs_ec2_cluster()
+        self.create_cluster()
 
         # Create an API Gateway and Load balancer to allow users to interact with Maple.
-        self.api: Api = Api(self, "Api", vpc=self.vpc)
+        self.api: ApiGateway = ApiGateway(self, "Api", vpc=self.vpc)
 
-    def _make_ecs_ec2_cluster(self):
-        self.cluster: ecs.Cluster = ecs.Cluster(self, "Cluster", vpc=self.vpc)
+    def create_cluster(self):
+        self.cluster: ecs.Cluster = ecs.Cluster(
+            self,
+            "Cluster",
+            vpc=self.vpc,
+        )
+
         self.cluster.add_capacity(
             "BaseCapacity",
             instance_type=ec2.InstanceType("t4g.large"),
@@ -47,10 +53,24 @@ class SharedStack(Stack):
             machine_image=ecs.EcsOptimizedImage.amazon_linux2(ecs.AmiHardwareType.ARM),
             vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
         )
-        self.cluster.connections.allow_from_any_ipv4(ec2.Port.tcp(22), "Allow SSH")
 
-    def _make_rds_instance(self):
-        self.db_admin = rds.Credentials.from_generated_secret("mapleadmin")
+        self.cluster.connections.allow_from_any_ipv4(
+            ec2.Port.tcp(22),
+            "Allow SSH",
+        )
+
+        # Supports service discovery and routing api gateway requests to the
+        # cluster.
+        self.cluster.add_default_cloud_map_namespace(
+            name="maple.net",
+            type=sd.NamespaceType.DNS_PRIVATE,
+        )
+
+    def create_rds_instance(self):
+        self.db_admin = rds.Credentials.from_generated_secret(
+            "mapleadmin",
+        )
+
         self.db = rds.DatabaseInstance(
             self,
             "PostgresInstance",

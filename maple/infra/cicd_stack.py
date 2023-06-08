@@ -34,7 +34,7 @@ class CiCdStack(Stack):
             ),
         )
 
-        pipeline.add_stage(MapleApplication(self, "Prod"))
+        pipeline.add_stage(MapleApplication(self, "App"))
 
         # pipeline.add_stage(MapleApplication(self, "Dev"))
         # pipeline.add_stage(MapleApplication(self, "Prod"), pre=[pipelines.ManualApprovalStep("PromoteToProd")])
