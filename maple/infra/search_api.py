@@ -23,8 +23,8 @@ service_names = {
 }
 
 api_paths = {
-    "dev": "/dev/search",
-    "prod": "/search",
+    "dev": "/dev/search/{route+}",
+    "prod": "/search/{route+}",
 }
 
 
