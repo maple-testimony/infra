@@ -86,8 +86,9 @@ class SearchApi(Construct):
         # Create a Task Definition
         self.definition: ecs.Ec2TaskDefinition = ecs.Ec2TaskDefinition(
             self,
-            "TaskDef",
+            "SearchTaskDefinition",
             volumes=[volume],
+            network_mode=ecs.NetworkMode.AWS_VPC,
         )
 
         # Add a container with environment variables and a mount point for the
