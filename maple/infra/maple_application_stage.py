@@ -27,7 +27,7 @@ class MapleApplication(Stage):
         self.prod_search: SearchApi = SearchApi(
             base,
             "SearchApi",
-            stage_name="prod",
+            env_name="prod",
             api=base.api,
             cluster=base.cluster,
         )
@@ -35,7 +35,7 @@ class MapleApplication(Stage):
         self.dev_search: SearchApi = SearchApi(
             self.shared,
             "DevSearchApi",
-            stage_name="dev",
+            env_name="dev",
             api=base.api,
             cluster=base.cluster,
         )

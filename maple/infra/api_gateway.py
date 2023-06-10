@@ -8,6 +8,8 @@ from aws_cdk import aws_elasticloadbalancingv2 as elbv2
 from aws_cdk.aws_apigatewayv2 import CfnStage
 from constructs import Construct
 
+EnvName = Literal["dev", "prod"]
+
 
 class ApiGateway(Construct):
     def __init__(
@@ -30,11 +32,15 @@ class ApiGateway(Construct):
         self.vpc_link: apigw.VpcLink = apigw.VpcLink(self, "VpcLink", vpc=vpc)
 
         # Production site uses the default route without any prefix
-        self.prod_stage = self.http_api.default_stage
+        self.prod_api: apigw.HttpApi = apigw.HttpApi(self, "maple-api-prod")
 
         # Dev site uses the /dev prefixs
-        self.dev_stage = self.http_api.add_stage(
-            "DevStage",
-            stage_name="dev",
-            auto_deploy=True,
-        )
+        self.dev_api: apigw.HttpApi = apigw.HttpApi(self, "maple-api-dev")
+
+    def get(self, env: EnvName) -> apigw.HttpApi:
+        if env == "prod":
+            return self.prod_api
+        elif env == "dev":
+            return self.dev_api
+        else:
+            raise ValueError(f"Invalid env: {env}")

@@ -13,18 +13,11 @@ from aws_cdk import aws_secretsmanager as secretsmanager
 from aws_cdk import aws_servicediscovery as sd
 from constructs import Construct
 
-from .api_gateway import ApiGateway
-
-StageName = Literal["dev", "prod"]
+from .api_gateway import ApiGateway, EnvName
 
 service_names = {
     "dev": "search-dev",
     "prod": "search-prod",
-}
-
-api_paths = {
-    "dev": "/dev/search/{route+}",
-    "prod": "/search/{route+}",
 }
 
 
@@ -36,18 +29,17 @@ class SearchApi(Construct):
         scope: Construct,
         construct_id: str,
         *,
-        stage_name: StageName,
+        env_name: EnvName,
         api: ApiGateway,
         cluster: ecs.Cluster,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        self.create_service(cluster, service_names[stage_name])
-        path = api_paths[stage_name]
+        self.create_service(cluster, service_names[env_name])
 
-        api.http_api.add_routes(
-            path=path,
+        api.get(env_name).add_routes(
+            path="/search/{route+}",
             methods=[apigw.HttpMethod.ANY],
             integration=apigw_integrations.HttpServiceDiscoveryIntegration(
                 "SearchIntegration",
@@ -124,6 +116,7 @@ class SearchApi(Construct):
                 read_only=False,
             )
         )
+
         # Create a service with a CloudMap service discovery entry matching the input id.
         # API Gateway uses this to route requests to the containers.
         self.service: ecs.Ec2Service = ecs.Ec2Service(
