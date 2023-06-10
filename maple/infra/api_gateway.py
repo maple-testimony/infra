@@ -26,16 +26,14 @@ class ApiGateway(Construct):
 
         # Ingress
         # Create HTTP API Gateway to handle incoming HTTPS traffic
-        self.http_api: apigw.HttpApi = apigw.HttpApi(self, "HttpApi")
-
-        # Link between Ingress and Services
-        self.vpc_link: apigw.VpcLink = apigw.VpcLink(self, "VpcLink", vpc=vpc)
-
         # Production site uses the default route without any prefix
         self.prod_api: apigw.HttpApi = apigw.HttpApi(self, "maple-api-prod")
 
         # Dev site uses the /dev prefixs
         self.dev_api: apigw.HttpApi = apigw.HttpApi(self, "maple-api-dev")
+
+        # Link between Ingress and Services
+        self.vpc_link: apigw.VpcLink = apigw.VpcLink(self, "VpcLink", vpc=vpc)
 
     def get(self, env: EnvName) -> apigw.HttpApi:
         if env == "prod":
