@@ -132,11 +132,10 @@ class SearchApi(Construct):
             cluster=cluster,
             desired_count=1,
             task_definition=self.definition,
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE),
             cloud_map_options=ecs.CloudMapOptions(
                 name=service_name,
                 dns_record_type=sd.DnsRecordType.SRV,
             ),
         )
 
-        self.service.connections.allow(ec2.Port.allTraffic())
+        self.service.connections.allow_from_any_ipv4(ec2.Port.all_traffic())
