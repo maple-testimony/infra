@@ -124,7 +124,6 @@ class SearchApi(Construct):
                 read_only=False,
             )
         )
-
         # Create a service with a CloudMap service discovery entry matching the input id.
         # API Gateway uses this to route requests to the containers.
         self.service: ecs.Ec2Service = ecs.Ec2Service(
@@ -133,8 +132,11 @@ class SearchApi(Construct):
             cluster=cluster,
             desired_count=1,
             task_definition=self.definition,
+            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PRIVATE),
             cloud_map_options=ecs.CloudMapOptions(
                 name=service_name,
                 dns_record_type=sd.DnsRecordType.SRV,
             ),
         )
+
+        self.service.connections.allow(ec2.Port.allTraffic())
