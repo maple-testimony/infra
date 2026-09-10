@@ -33,6 +33,8 @@ PROD_KEY_SECRET = "SearchApiSearchApiAdminKeySecretAE7C60F8"
 DEV_KEY_SECRET = "DevSearchApiSearchApiAdminKeySecretE052B8E8"
 PROD_TASK_DEFINITION = "SearchApiSearchTaskDefinition547D8A1B"
 DEV_TASK_DEFINITION = "DevSearchApiSearchTaskDefinitionE5EA1B9E"
+PROD_SERVICE = "SearchApisearchprodService3B81384A"
+DEV_SERVICE = "DevSearchApisearchdevService86D221C4"
 
 
 @pytest.fixture(scope="module")
@@ -83,6 +85,31 @@ def test_typesense_image_matches_context(
     assert logical_id in resources
     containers = resources[logical_id]["Properties"]["ContainerDefinitions"]
     assert [c["Image"] for c in containers] == [CONTEXT[context_key]]
+
+
+@pytest.mark.parametrize("logical_id", [PROD_SERVICE, DEV_SERVICE])
+def test_services_forbid_overlapping_tasks(
+    shared_stack_template: Template, logical_id: str
+) -> None:
+    """Neither service may start a replacement task beside the outgoing one.
+
+    Typesense holds an exclusive RocksDB lock on /app/data, both tasks land on
+    the single container instance, and the volume is shared, so an overlapping
+    replacement cannot open the data directory and exits. No deployment circuit
+    breaker is configured, so ECS retries that rather than failing fast.
+    """
+    services = shared_stack_template.find_resources("AWS::ECS::Service")
+    assert logical_id in services, (
+        f"{logical_id} is missing. Renaming or re-scoping the SearchApi / "
+        f"DevSearchApi constructs or their Ec2Service would replace the "
+        f"service, and this assertion would stop checking anything."
+    )
+    # Asserted key by key rather than against the whole DeploymentConfiguration
+    # so that adding a deployment circuit breaker later -- the mitigation the
+    # comment in search_api.py names as missing -- does not fail this test.
+    deployment = services[logical_id]["Properties"]["DeploymentConfiguration"]
+    assert deployment["MinimumHealthyPercent"] == 0
+    assert deployment["MaximumPercent"] == 100
 
 
 def test_launch_configuration_is_byte_stable(

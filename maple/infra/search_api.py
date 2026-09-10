@@ -19,15 +19,18 @@ service_names = {
 # data directory. Both tasks would land on the single container instance and
 # mount the same shared Docker volume, so a replacement task that starts while
 # the outgoing one is still running cannot open the data directory and exits.
-# 0/100 forbids that overlap and forces stop-then-start, trading a brief gap for
-# a deployment that cannot wedge.
+# Neither service configures a deployment circuit breaker, so ECS would sit
+# retrying that rather than failing fast. 0/100 forbids the overlap and forces
+# stop-then-start, so a deployment cannot wedge on the lock.
 #
-# Prod keeps CDK's 50/200 default so that shipping the dev upgrade leaves the
-# prod service byte-identical to what is deployed. It needs 0/100 too before its
-# next task definition change, tracked in #13.
+# It removes that wedge and no other. desired_count is 1, so 0% healthy means
+# the gap is a full outage for that environment rather than reduced capacity,
+# and if the replacement task fails for any reason other than the lock -- an
+# OOM against the container's memory limit, say -- the missing circuit breaker
+# still leaves ECS retrying indefinitely with nothing serving.
 deployment_percentages = {
     "dev": (0, 100),
-    "prod": (50, 200),
+    "prod": (0, 100),
 }
 
 

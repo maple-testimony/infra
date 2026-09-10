@@ -3,5 +3,5 @@
   "root_account_arn": "968366361019", 
   "primary_region": "us-east-1",
   "typesense_image_dev": "typesense/typesense:30.2",
-  "typesense_image_prod": "typesense/typesense:0.24.1"
+  "typesense_image_prod": "typesense/typesense:30.2"
 }

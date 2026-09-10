@@ -35,6 +35,22 @@ picks up the locked environment without a separate activation step.
 
 ## Before deploying
 
+Changing `typesense_image_dev` or `typesense_image_prod` across the 0.25
+boundary is a one-way door. Typesense 0.25 changed the on-disk format and v30
+downgrades no lower than v27, so once a container has started on 30.x the data
+directory it migrated can no longer be read by 0.24.1. Rolling back means
+restoring the data directory; re-pinning the tag on its own does not work, and
+neither does letting CloudFormation roll the service back to the previous task
+definition.
+
+Both indexes live on Docker local volumes on the single cluster instance's root
+disk, so the thing to restore is an EBS snapshot of that volume. Take it
+immediately before the deploy and confirm it reads `State=completed` before
+merging -- an incomplete snapshot cannot be used to create a volume. The
+pipeline triggers on pushes to `main` and the application stage has no manual
+approval step, so the merge *is* the deploy; there is no window afterwards in
+which to take the snapshot.
+
 The CDK CLI refuses to deploy against a bootstrap stack older than what the
 synthesized app declares. Check both numbers before a deploy:
 
